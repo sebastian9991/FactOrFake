@@ -1,0 +1,55 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{enumitem}
+\usepackage[textwidth=8in,textheight=10in]{geometry}
+\usepackage{subfig}
+\newlist{myitems}{enumerate}{1}
+\title{COMP 550 Assignment 1}
+
+\begin{document}
+\maketitle
+
+\section*{Report}
+\subsection{Problem Setup}
+1. Is it possible to distinguish real from fake facts about cities using linear classifiers?\\
+2. Does the choice of linear classifier matter?\\\\
+The problem setup involves distinguishing between \textit{real} and \textit{fake} facts about cities using text classification. The goal is to determine whether any linear classifiers can effectively solve an albeit simpler version of a text classification problem. As such, this is clearly a binary classification, making it a supervised learning problem with two distinct classes. After assessing the performance of three linear classifiers we will compare the performance, and then decide whether the choice of linear classifier matters. 
+\subsection{Dataset Generation \& Experimental Procedure}
+\begin{enumerate}
+   \item Dataset Generation
+   \begin{enumerate}
+     \item \textbf{City Facts/Fakes}: Using generative AI (chatGPT-3.5) we create a sample list of true and false facts about a city. Each is delimited by a newline and does not contain quotations. (The prompt used is in the pa1.py code.)
+   \end{enumerate}
+\item \textbf{Data Preprocessing}:
+    \begin{enumerate}
+        \item \textbf{Text Cleaning:} First we start by normalizing the text by removing \textbf{stopwords} to count the important words instead of the "fluff". Additionally, to maintain the abstraction of a word, and to remove complexity we used \textbf{stemming} and \textbf{lemmatization}. Each is used with the NLTK package. 
+    \end{enumerate}
+    \begin{enumerate}
+        \item \textbf{Feature Extraction:} The next preprocessing step is to vectorize the document. Then use n-grams, from $1-3$. For this, we used the TF-IDF vectorizer, and N-gram vectorizers from nltk. Thus, creating features of frequency counts and n-grams.
+    \end{enumerate}
+\item \textbf{Train-Test Split}: We split the data into training and testing sets (using the common 80\%-20\%). Additionally, using random states and sampling to maintain a balance in the distribution of real and fake facts.
+\item \textbf{Linear Classifiers}: We choose three different classifiers: \textit{Logistic Regression} (LR), \textit{Support Vector Classification} (SVC), \textit{Naive Bayes (Gaussian)} (NB).
+\item \textbf{Feature Selection}: Given that we use two separate vectorizers for our data, we expected to have many features. Thus, we run Recursive Feature Elimination (RFE) on LR \& SVC, and Permutation Importance (PI) on NB. These are two feature selection algorithms. The outputted features (A combination of frequency counts and bigrams/trigrams) are masked to the training and test sets, thus removing all unnecessary features. \textbf{NOTE:} The RFE algorithm performs cross-validation on the training set, thus creating a validation set to assess the best features. Similarly, for PI I manually created a validation set to test the best features. 
+\item \textbf{Evaluation Metrics}: We use various metrics to assess performance, especially to distinguish between real and fake facts. We use: \textit{Accuracy}, \textit{Precision, Recall}, and a \textit{Confusion Matrix}
+\item \textbf{Hyperparameter Tuning}: We first consider the hyperparameters of our problem. We set them as two booleans, Pre-Processing and FeatureSelection. Additionally, before each evaluation, we do a grid search to maximize (within a reasonable set) the hyperparameters of the classifiers: LR($C$ constant), SVC($C$, $\gamma$ constants), NB(None).
+\item \textbf{Model Comparison}: After the training we assess the performance through the test dataset accuracy and with a confusion matrix on the test dataset.
+\end{enumerate}
+\subsection{Range of Parameter Settings}
+We consider all four permutations of the following: Pre-Processing $\{T,F\}$ and FeatureSelection $\{T,F\}$. Thus, running the processing with these initial problem parameters, and continuing with a hyperparamater tuning of each classifier. We explored the maximal parameters using a basic grid search. 
+For instance, we have the parameter grids that are explored for LR:\\
+\begin{verbatim}
+param_grid = {'logisticregression__C': [0.001, 0.01, 0.1, 1, 10, 1000]}
+\end{verbatim}
+It is important to note, that each hyperparamater selection uses $gridsearch.fit(X_{train}, y_{train})$ function, which calls cross-validation at 5 folds. In each cross-validation, a \textbf{development set} is created and the parameter is chosen to maximize the development set score. The grid search outputs the best parameters for each model, and we use those accordingly. We do \textbf{not} use the test set.
+\subsection{Results and Conclusions.}
+\includegraphics[scale=0.55]{histogram_featureSelection.png}\\
+Notice that the test accuracy on the Test Dataset is the highest with the LR. However, both NB and SVC have accuracy $> 0.6$. Additionally, from our confusion matrices, we see that SVC had the highest recall, LR had the highest recall, and NB had the lowest on all metrics. In that regard, LR can be argued to be successful in classifying whether we have a fact or fake. Although we have performed cross-validation on every metric to help reduce overfitting, it is difficult to say whether the deployment score would perform well. We discuss this below. \\
+
+We should consider that the generalization of a task like this is much more complex. Not only does it require a more extensive dataset, but will vary depending on the domain we consider. A linear classifier may not be suited to handle other domains. In that regard, we will consider our assumptions: 
+\begin{enumerate}
+    \item Data is linear. That is, we can create a linear decision boundary. 
+    \item Data is balanced (given our generation procedure)
+    \item Due to the behavior of GPT (and our prompt) the text fakes are quite obvious. This is likely not how fake data may be in "fake news" or how human fake data is generated. 
+\end{enumerate}
+The assumption that data is linear, is valid, as I would say most binary classifications in text would be linearly separable. However, the balanced data may be an incorrect assumption, as one class of the data would most likely be imbalanced through actual data collection. Additionally, the obvious fake data assumption is invalid, as understanding the analogous real-world application of say "fake news" detection is much more subtle than what we have in our fake list. With that said the classifiers we create from this example cannot be generalized because different mediums of text do not have the same assumptions.
+\end{document}
